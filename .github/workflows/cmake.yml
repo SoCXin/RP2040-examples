@@ -1,5 +1,9 @@
 name: CMake
-on: [push, pull_request]
+
+on:
+  push:
+    branches:
+      - master
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -7,25 +11,19 @@ env:
 
 jobs:
   build:
-    if: github.repository_owner == 'raspberrypi'
-    runs-on: [self-hosted, Linux, X64]
-
+    if: github.repository_owner == 'SoCXin'
+    runs-on: ubuntu-latest
     steps:
-    - name: Clean workspace
-      run: |
-        echo "Cleaning up previous run"
-        rm -rf "${{ github.workspace }}"
-        mkdir -p "${{ github.workspace }}"
-
-    - name: Checkout pico-examples
-      uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
       with:
-        path: pico-examples
+        submodules: "recursive"
+        fetch-depth: 1
 
     - name: Checkout pico-sdk/develop
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
-        repository: raspberrypi/pico-sdk
+        repository: SoCXin/RP2040-SDK
         ref: develop
         path: pico-sdk
 
@@ -33,28 +31,33 @@ jobs:
       working-directory: ${{github.workspace}}/pico-sdk
       run: git submodule update --init
 
+    - name: Install
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi cmake libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
       # We'll use this as our working directory for all subsequent commands
-      working-directory: ${{github.workspace}}/pico-examples
-      run:  cmake -E make_directory ${{github.workspace}}/pico-examples/build
+      # working-directory: ${{github.workspace}}/pico-examples
+      run:  cmake -E make_directory build
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
       shell: bash
-      working-directory: ${{github.workspace}}/pico-examples/build
-      # Note the current convention is to use the -S and -B options here to specify source 
-      # and build directories, but this is only available with CMake 3.13 and higher.  
+      working-directory: build
+      # Note the current convention is to use the -S and -B options here to specify source
+      # and build directories, but this is only available with CMake 3.13 and higher.
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: PICO_SDK_PATH=../../pico-sdk cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      run: PICO_SDK_PATH=../pico-sdk cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Get core count
       id: core_count
       run : cat /proc/cpuinfo  | grep processor | wc -l
 
     - name: Build
-      working-directory: ${{github.workspace}}/pico-examples/build
+      working-directory: build
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE --parallel ${{steps.core_count.outputs.output}}
