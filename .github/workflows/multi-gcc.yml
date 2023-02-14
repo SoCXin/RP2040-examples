@@ -3,14 +3,13 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'master'
-      - 'test_workflow'
+      - 'main'
 
 jobs:
   build:
-    if: github.repository_owner == 'raspberrypi'
-    runs-on: [self-hosted, Linux, X64]
-
+    if: github.repository_owner == 'SoCXin'
+    # runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     steps:
     - name: Clean workspace
       run: |
@@ -19,14 +18,14 @@ jobs:
         mkdir -p "${{ github.workspace }}"
 
     - name: Checkout pico-examples
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: pico-examples
 
     - name: Checkout pico-sdk/develop
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
-        repository: raspberrypi/pico-sdk
+        repository: SoCXin/RP2040-SDK
         ref: develop
         path: pico-sdk
 
